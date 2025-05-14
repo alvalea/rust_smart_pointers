@@ -1,29 +1,30 @@
 use std::cell::RefCell;
+use std::fmt::Debug;
 use std::option::Option;
 use std::rc::{Rc, Weak};
 
-struct StackNode<T: std::fmt::Display> {
+struct StackNode<T: Debug> {
     value: T,
     next: Option<Box<StackNode<T>>>,
 }
 
-impl<T: std::fmt::Display> StackNode<T> {
+impl<T: Debug> StackNode<T> {
     fn new(value: T) -> Box<Self> {
         Box::new(StackNode { value, next: None })
     }
 }
 
-impl<T: std::fmt::Display> Drop for StackNode<T> {
+impl<T: Debug> Drop for StackNode<T> {
     fn drop(&mut self) {
-        println!("Drop stacknode {}", self.value);
+        println!("Drop stacknode {:?}", self.value);
     }
 }
 
-struct Stack<T: std::fmt::Display> {
+struct Stack<T: Debug> {
     top: Option<Box<StackNode<T>>>,
 }
 
-impl<T: std::fmt::Display> Stack<T> {
+impl<T: Debug> Stack<T> {
     fn new() -> Self {
         Self { top: None }
     }
@@ -42,35 +43,35 @@ impl<T: std::fmt::Display> Stack<T> {
     fn print(&self) {
         let mut node = &self.top;
         while let Some(current) = node {
-            println!("{}", current.value);
+            println!("{:?}", current.value);
             node = &current.next;
         }
     }
 }
 
-struct ListNode<T: std::fmt::Display> {
+struct ListNode<T: Debug> {
     value: T,
     next: Option<Rc<RefCell<ListNode<T>>>>,
 }
 
-impl<T: std::fmt::Display> ListNode<T> {
+impl<T: Debug> ListNode<T> {
     fn new(value: T) -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(Self { value, next: None }))
     }
 }
 
-impl<T: std::fmt::Display> Drop for ListNode<T> {
+impl<T: Debug> Drop for ListNode<T> {
     fn drop(&mut self) {
-        println!("Drop listnode {}", self.value);
+        println!("Drop listnode {:?}", self.value);
     }
 }
 
-struct List<T: std::fmt::Display> {
+struct List<T: Debug> {
     head: Option<Rc<RefCell<ListNode<T>>>>,
     tail: Option<Rc<RefCell<ListNode<T>>>>,
 }
 
-impl<T: std::fmt::Display> List<T> {
+impl<T: Debug> List<T> {
     fn new() -> Self {
         Self {
             head: None,
@@ -130,20 +131,20 @@ impl<T: std::fmt::Display> List<T> {
     fn print(&self) {
         let mut node = self.head.clone();
         while let Some(current) = node {
-            println!("{} -> ", current.borrow().value);
+            println!("{:?} -> ", current.borrow().value);
             node = current.borrow().next.clone();
         }
     }
 }
 
-struct TreeNode<T: std::fmt::Display> {
+struct TreeNode<T: Debug> {
     value: T,
     parent: Weak<RefCell<TreeNode<T>>>,
     left: Option<Rc<RefCell<TreeNode<T>>>>,
     right: Option<Rc<RefCell<TreeNode<T>>>>,
 }
 
-impl<T: std::fmt::Display> TreeNode<T> {
+impl<T: Debug> TreeNode<T> {
     fn new(value: T) -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(Self {
             value,
@@ -206,7 +207,7 @@ impl<T: std::fmt::Display> TreeNode<T> {
 
     fn print(node: &Rc<RefCell<Self>>) {
         let current_node = node.borrow();
-        println!("{} ", current_node.value);
+        println!("{:?} ", current_node.value);
         if let Some(left_node) = &current_node.left {
             TreeNode::print(left_node);
         }
@@ -216,17 +217,17 @@ impl<T: std::fmt::Display> TreeNode<T> {
     }
 }
 
-impl<T: std::fmt::Display> Drop for TreeNode<T> {
+impl<T: Debug> Drop for TreeNode<T> {
     fn drop(&mut self) {
-        println!("Drop treenode {}", self.value);
+        println!("Drop treenode {:?}", self.value);
     }
 }
 
-struct Tree<T: std::fmt::Display> {
+struct Tree<T: Debug> {
     root: Option<Rc<RefCell<TreeNode<T>>>>,
 }
 
-impl<T: std::fmt::Display> Tree<T> {
+impl<T: Debug> Tree<T> {
     fn new() -> Self {
         Self { root: None }
     }
