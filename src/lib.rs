@@ -1,7 +1,9 @@
 use std::cell::RefCell;
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter, Result};
 use std::option::Option;
 use std::rc::{Rc, Weak};
+
+mod book;
 
 struct StackNode<T: Debug> {
     value: T,
@@ -17,6 +19,15 @@ impl<T: Debug> StackNode<T> {
 impl<T: Debug> Drop for StackNode<T> {
     fn drop(&mut self) {
         println!("Drop stacknode {:?}", self.value);
+    }
+}
+
+impl<T: Debug> Debug for StackNode<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        f.debug_struct("StackNode")
+            .field("value", &self.value)
+            .field("next", &self.next)
+            .finish()
     }
 }
 
@@ -43,7 +54,7 @@ impl<T: Debug> Stack<T> {
     fn print(&self) {
         let mut node = &self.top;
         while let Some(current) = node {
-            println!("{:?}", current.value);
+            println!("{:#?}", current);
             node = &current.next;
         }
     }
@@ -63,6 +74,15 @@ impl<T: Debug> ListNode<T> {
 impl<T: Debug> Drop for ListNode<T> {
     fn drop(&mut self) {
         println!("Drop listnode {:?}", self.value);
+    }
+}
+
+impl<T: Debug> Debug for ListNode<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        f.debug_struct("ListNode")
+            .field("value", &self.value)
+            .field("next", &self.next)
+            .finish()
     }
 }
 
@@ -131,7 +151,7 @@ impl<T: Debug> List<T> {
     fn print(&self) {
         let mut node = self.head.clone();
         while let Some(current) = node {
-            println!("{:?} -> ", current.borrow().value);
+            println!("{:#?} -> ", current);
             node = current.borrow().next.clone();
         }
     }
@@ -202,12 +222,12 @@ impl<T: Debug> TreeNode<T> {
                 }
             }
         }
-        return false;
+        false
     }
 
     fn print(node: &Rc<RefCell<Self>>) {
         let current_node = node.borrow();
-        println!("{:?} ", current_node.value);
+        println!("{:#?} ", current_node);
         if let Some(left_node) = &current_node.left {
             TreeNode::print(left_node);
         }
@@ -220,6 +240,17 @@ impl<T: Debug> TreeNode<T> {
 impl<T: Debug> Drop for TreeNode<T> {
     fn drop(&mut self) {
         println!("Drop treenode {:?}", self.value);
+    }
+}
+
+impl<T: Debug> Debug for TreeNode<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        f.debug_struct("TreeNode")
+            .field("value", &self.value)
+            .field("parent", &self.parent)
+            .field("left", &self.left)
+            .field("right", &self.right)
+            .finish()
     }
 }
 
@@ -297,259 +328,62 @@ fn test_tree() {
     tree.print();
 }
 
-mod book {
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    struct MyBox<T>(T);
-
-    impl<T> MyBox<T> {
-        fn new(x: T) -> Self {
-            Self(x)
-        }
+    #[test]
+    fn stack_demo() {
+        test_stack();
     }
 
-    use std::ops::{Deref, DerefMut};
-
-    impl<T> Deref for MyBox<T> {
-        type Target = T;
-
-        fn deref(&self) -> &Self::Target {
-            &self.0
-        }
+    #[test]
+    fn list_demo() {
+        test_list();
     }
 
-    impl<T> DerefMut for MyBox<T> {
-        fn deref_mut(&mut self) -> &mut Self::Target {
-            &mut self.0
-        }
+    #[test]
+    fn tree_demo() {
+        test_tree();
     }
 
-    impl<T> Drop for MyBox<T> {
-        fn drop(&mut self) {
-            println!("Dropping MyBox with data");
-        }
+    #[test]
+    fn book_deref_demo() {
+        book::test_deref();
     }
 
-    pub fn test_deref() {
-        let x = 5;
-        let mut y = MyBox::new(x);
-        println!("{}", *y);
-        *y = 7;
-        println!("{}", *y);
+    #[test]
+    fn book_drop_demo() {
+        book::test_drop();
     }
 
-    pub fn test_drop() {
-        let c = MyBox::new(String::from("some data"));
-        println!("MyBox created.");
-        drop(c);
-        println!("MyBox dropped before the end of the function.");
+    #[test]
+    fn book_list_demo() {
+        book::test_list();
     }
 
-    #[derive(Debug)]
-    enum List {
-        Node(i32, Box<List>),
-        Nil,
+    #[test]
+    fn book_shared_list_demo() {
+        book::shared_list::test_shared_list();
     }
 
-    use crate::book::List::{Nil, Node};
-
-    pub fn test_list() {
-        let list = Node(1, Box::new(Node(2, Box::new(Node(3, Box::new(Nil))))));
-        println!("{:?}", list);
+    #[test]
+    fn book_mut_shared_list_demo() {
+        book::mut_shared_list::test_mut_shared_list();
     }
 
-    pub mod shared_list {
-        #[derive(Debug)]
-        enum List {
-            Node(i32, Rc<List>),
-            Nil,
-        }
-
-        use crate::book::shared_list::List::{Nil, Node};
-        use std::rc::Rc;
-
-        pub fn test_shared_list() {
-            let a = Rc::new(Node(5, Rc::new(Node(10, Rc::new(Nil)))));
-            println!("count after creating a = {}", Rc::strong_count(&a));
-            let b = Node(3, Rc::clone(&a));
-            println!("count after creating b = {}", Rc::strong_count(&a));
-            {
-                let c = Node(4, Rc::clone(&a));
-                println!("count after creating c = {}", Rc::strong_count(&a));
-            }
-            println!("count after c goes out of scope = {}", Rc::strong_count(&a));
-        }
+    #[test]
+    fn book_leak_demo() {
+        book::leak::test_leak();
     }
 
-    pub mod mut_shared_list {
-        #[derive(Debug)]
-        enum List {
-            Node(Rc<RefCell<i32>>, Rc<List>),
-            Nil,
-        }
-
-        use crate::book::mut_shared_list::List::{Nil, Node};
-        use std::cell::RefCell;
-        use std::rc::Rc;
-
-        pub fn test_mut_shared_list() {
-            let value = Rc::new(RefCell::new(5));
-
-            let a = Rc::new(Node(Rc::clone(&value), Rc::new(Nil)));
-
-            let b = Node(Rc::new(RefCell::new(3)), Rc::clone(&a));
-            let c = Node(Rc::new(RefCell::new(4)), Rc::clone(&a));
-
-            *value.borrow_mut() += 10;
-
-            println!("a after = {a:?}");
-            println!("b after = {b:?}");
-            println!("c after = {c:?}");
-        }
+    #[test]
+    fn book_weak_demo() {
+        book::weak::test_weak();
     }
 
-    pub mod leak {
-        #[derive(Debug)]
-        struct MyStruct {
-            data: i32,
-        }
-
-        impl Drop for MyStruct {
-            fn drop(&mut self) {
-                println!("Drop MyStruct {}", self.data);
-            }
-        }
-
-        #[derive(Debug)]
-        enum List {
-            Node(MyStruct, RefCell<Rc<List>>),
-            Nil,
-        }
-
-        use crate::book::leak::List::{Nil, Node};
-        use std::cell::RefCell;
-        use std::rc::Rc;
-
-        impl List {
-            fn tail(&self) -> Option<&RefCell<Rc<List>>> {
-                match self {
-                    Node(_, item) => Some(item),
-                    Nil => None,
-                }
-            }
-        }
-
-        pub fn test_leak() {
-            let a = Rc::new(Node(MyStruct { data: 5 }, RefCell::new(Rc::new(Nil))));
-
-            println!("a initial rc count = {}", Rc::strong_count(&a));
-            println!("a next item = {:?}", a.tail());
-
-            let b = Rc::new(Node(MyStruct { data: 10 }, RefCell::new(Rc::clone(&a))));
-
-            println!("a rc count after b creation = {}", Rc::strong_count(&a));
-            println!("b initial rc count = {}", Rc::strong_count(&b));
-            println!("b next item = {:?}", b.tail());
-
-            // Comment to avoid cycle and memory leak
-            if let Some(link) = a.tail() {
-                *link.borrow_mut() = Rc::clone(&b);
-            }
-
-            println!("b rc count after changing a = {}", Rc::strong_count(&b));
-            println!("a rc count after changing a = {}", Rc::strong_count(&a));
-        }
+    #[test]
+    fn book_arc_demo() {
+        book::arc::test_arc();
     }
-
-    pub mod weak {
-
-        use std::cell::RefCell;
-        use std::rc::{Rc, Weak};
-
-        #[derive(Debug)]
-        struct Node {
-            value: i32,
-            parent: RefCell<Weak<Node>>,
-            children: RefCell<Vec<Rc<Node>>>,
-        }
-
-        pub fn test_weak() {
-            let leaf = Rc::new(Node {
-                value: 3,
-                parent: RefCell::new(Weak::new()),
-                children: RefCell::new(vec![]),
-            });
-
-            let leaf2 = Rc::new(Node {
-                value: 4,
-                parent: RefCell::new(Weak::new()),
-                children: RefCell::new(vec![]),
-            });
-
-            println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
-
-            let branch = Rc::new(Node {
-                value: 5,
-                parent: RefCell::new(Weak::new()),
-                children: RefCell::new(vec![Rc::clone(&leaf)]),
-            });
-            branch.children.borrow_mut().push(Rc::clone(&leaf2));
-
-            *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
-
-            println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
-        }
-    }
-
-    pub mod arc {
-
-        use std::sync::{Arc, Mutex};
-        use std::thread;
-
-        pub fn test_arc() {
-            let counter = Arc::new(Mutex::new(0));
-            let mut handles = vec![];
-
-            for _ in 0..10 {
-                let counter = Arc::clone(&counter);
-                let handle = thread::spawn(move || {
-                    let mut num = counter.lock().unwrap();
-
-                    *num += 1;
-                });
-                handles.push(handle);
-            }
-
-            for handle in handles {
-                handle.join().unwrap();
-            }
-
-            println!("Result: {}", *counter.lock().unwrap());
-        }
-    }
-}
-
-fn main() {
-    test_stack();
-    println!("\n");
-    test_list();
-    println!("\n");
-    test_tree();
-    println!("\n");
-
-    book::test_deref();
-    println!("\n");
-    book::test_drop();
-    println!("\n");
-    book::test_list();
-    println!("\n");
-    book::shared_list::test_shared_list();
-    println!("\n");
-    book::mut_shared_list::test_mut_shared_list();
-    println!("\n");
-    book::leak::test_leak();
-    println!("\n");
-    book::weak::test_weak();
-    println!("\n");
-    book::arc::test_arc();
-    println!("\n");
 }
